@@ -1,0 +1,27 @@
+@mixin flex($primary-alignment: auto, $secondary-alignment: auto, $direction: auto) {
+  display: flex;
+  @if $primary-alignment != auto {
+    justify-content: $primary-alignment;
+  }
+  @if $secondary-alignment != auto {
+    align-items: $secondary-alignment;
+  }
+  @if $direction != auto {
+    flex-direction: $direction;
+  }
+}
+
+@mixin font($size: auto, $weight: auto, $color: auto, $transform: auto) {
+  @if $size != auto {
+    font-size: $size;
+  }
+  @if $weight != auto {
+    font-weight: $weight;
+  }
+  @if $color!= auto {
+    color: $color;
+  }
+  @if $transform!= auto {
+    text-transform: $transform;
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "ts-test",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "watch": "parcel watch src/index.pug",
+    "dev": "parcel src/index.pug"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "sass": "^1.20.1",
+    "typescript": "^3.4.5",
+    "pug": "^2.0.3"
+  }
+}

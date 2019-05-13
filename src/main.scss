@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css?family=Kanit');
+@import './sass/mixins';
+@import './sass/line';
+
+body {
+  
+  background: #212121;
+  margin: 0;
+  width: 100vw;
+  height: 100vh;
+  @include flex(center, center);
+
+  * {
+    font-family: 'Kanit', sans-serif;
+    box-sizing: border-box;
+  }
+}
+
+.screen {
+  width: calc(100vw - 50px);
+  height: calc(100vh - 50px);
+  padding: 20px;
+  background: #101010;
+  box-shadow: 0 0 1px inset;
+}

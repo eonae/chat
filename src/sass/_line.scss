@@ -1,0 +1,25 @@
+.line {
+  @include flex(auto, center);
+
+  > * {
+    @include font(20px, auto, #ddd);
+    word-spacing: .07em;
+    letter-spacing: .02em;
+    padding: 5px 0 0 10px;
+    background: none;
+    border: none;
+    outline: none;
+  }
+
+  input, .line-content {
+    flex-grow: 1;
+  }
+
+  .line-content {
+    word-wrap: break-word;
+  }
+
+  .hidden {
+    display: none;
+  }
+}
