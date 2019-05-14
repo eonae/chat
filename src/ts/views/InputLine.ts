@@ -2,22 +2,25 @@ import Line from './Line';
 
 export default class InputLine extends Line {
 
-  private _invitation: HTMLDivElement;
   private _input: HTMLInputElement;
+  public invitation: string = '>';
 
   constructor() {
     super();
-    this._invitation = document.createElement('div');
-    this._invitation.textContent = '>';
-    this._element.insertBefore(this._invitation, this._textField);
-    this._input = document.createElement('input');
-    this._input.type = 'text';
-    this._input.focus();
-    this._element.insertBefore(this._input, this._textField);
+
+    const $invitation = document.createElement('div');
+    $invitation.textContent = this.invitation;
+    this._element.insertBefore($invitation, this._textField);
+
+    const $input = document.createElement('input');
+    $input.type = 'text';
+    this._element.insertBefore($input, this._textField);
+
+    this._input = $input;
+
     this._textField.classList.add('hidden');
 
     this.handleKeys = this.handleKeys.bind(this);
-
     window.addEventListener('keydown', this.handleKeys);
   }
 

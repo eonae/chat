@@ -1,18 +1,8 @@
 import './main.scss';
-import Terminal from './ts/views/Terminal';
-import CommandCollection from './ts/CommandCollection';
+import { Terminal } from './ts/terminal/Terminal';
+import { TerminalView } from './ts/views/TerminalView';
+import { commands } from './ts/terminal/Commands';
 
-const terminal = new Terminal('.screen');
-const testCommandSet = new CommandCollection();
-
-testCommandSet.add({
-  text: 'test',
-  action: (params, flags) => {
-    console.log('test');
-  },
-  validation: (params, flags) => true,
-  aliases: 't'
-});
-terminal.registerCommands(testCommandSet);
+const terminal = new Terminal(new TerminalView('.screen'), commands);
 
 terminal.run();
