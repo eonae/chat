@@ -33,6 +33,14 @@ export default class ChatClient extends BaseIOEntity { // По идее BaseIOEn
     return Promise.resolve(output);
   }
 
+  private _messageTrigger(message: string) : CommandTrigger {
+    return {
+      command: '@message',
+      flags: [],
+      arguments: [ message ]
+    }
+  }
+
   public in(input: string): void {
     const trigger = CommandTrigger.getFrom(input);
     let error: Error | void; // Не знаю, как сделать по-другому. Надо разбираться
@@ -41,20 +49,13 @@ export default class ChatClient extends BaseIOEntity { // По идее BaseIOEn
       .then(output => {
         if (isError(output)) {
           error = output;
-          return this.commandManager.tryExecute({
-            command: '@message',
-            flags: [],
-            arguments: [ input ]
-          })
-          .then(output => {
-            debugger;
-            if (isError(output)) {
-              return Promise.resolve(error); // Это важно! Причина по которой не получилось отправить сообщение
-              // Может быть только одна - соединение закрыто, а значит нужно отобразить ошибку КОМАНДЫ!
-            } else {
-              return Promise.resolve();
-            }
-          })
+          return this.commandManager
+            .tryExecute(this._messageTrigger(input))
+            .then(output => {
+              const res = (isError(output)) ? error : undefined; // Это важно! Причина по которой не получилось отправить сообщение
+              // Может быть только одна - соединение закрыто, а значит нужно отобразить именно ошибку КОМАНДЫ!
+              return Promise.resolve(res);
+            });
         } else {
           return Promise.resolve(error);
         }
@@ -62,12 +63,8 @@ export default class ChatClient extends BaseIOEntity { // По идее BaseIOEn
       .then(this.reportErrors)
       .then(() => {
         if (!this._stopToken) {
-          this.emit('read', {});
+          this.run();
         }
       });
-  }
-
-  run() : void {
-    this.emit('read', {});
   }
 }

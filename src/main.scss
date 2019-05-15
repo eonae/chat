@@ -1,6 +1,8 @@
 @import url('https://fonts.googleapis.com/css?family=Kanit');
 @import './sass/mixins';
 @import './sass/line';
+@import './sass/chat';
+@import 'simplebar/dist/simplebar.css';
 
 body {
   
@@ -17,6 +19,7 @@ body {
 }
 
 .screen {
+  position: relative;
   width: calc(100vw - 50px);
   height: calc(100vh - 50px);
   padding: 20px;

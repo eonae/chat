@@ -9,8 +9,10 @@
 // view.attachTo(shell);
 // shell.run();
 
+
 import './main.scss';
 import ChatClient from './ts/apps/chat/ChatClient';
+import ChatTerminal from './ts/views/ChatTerminal';
 import Terminal from './ts/views/Terminal';
 import { commands } from './ts/apps/chat/commands';
 

@@ -6,6 +6,20 @@ import CommandTrigger from './CommandTrigger';
 export default abstract class BaseIOEntity extends EventEmitter {
 
   public abstract in(input: string) : void;
+  public defaultInvitation: string = '>';
+  public invitation: string = this.defaultInvitation;
+
+  public setInvitation(inv: string) : void {
+    this.invitation = inv;
+  }
+  public dropInvitation() {
+    this.invitation = this.defaultInvitation;
+  }
+  
+  run() : void { // Вообще, этот метод специфичен для Shell-подобных сущностей. Может быть
+    // стоит сделать ещё один уровень абстракции.
+    this.emit('read', { invitation: this.invitation });
+  }
 
   protected commandManager = new CommandManager();
   protected _stopToken = false;
@@ -46,5 +60,19 @@ export default abstract class BaseIOEntity extends EventEmitter {
 
   public out(message: string): void {
     this.emit('write', message);
+  }
+
+  public ask(invitation: string) : Promise<string> {
+    this.emit('read', { invitation, question: true });
+
+    return new Promise(resolve => {
+      this.on('reply', answer => {
+        resolve(answer);
+      })
+    });
+  }
+
+  public reply(answer: string) : void {
+    this.emit('reply', answer);
   }
 }

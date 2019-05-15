@@ -3,13 +3,12 @@ import Line from './Line';
 export default class InputLine extends Line {
 
   private _input: HTMLInputElement;
-  public invitation: string = '>';
 
-  constructor() {
+  constructor(invitation: string = '>') {
     super();
-
+    
     const $invitation = document.createElement('div');
-    $invitation.textContent = this.invitation;
+    $invitation.textContent = invitation;
     this._element.insertBefore($invitation, this._textField);
 
     const $input = document.createElement('input');

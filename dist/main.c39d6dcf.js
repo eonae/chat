@@ -184,12 +184,18 @@ function reloadCSS() {
 }
 
 module.exports = reloadCSS;
-},{"./bundle-url":"../../../../../Users/Sergey/AppData/Roaming/npm/node_modules/parcel-bundler/src/builtins/bundle-url.js"}],"main.scss":[function(require,module,exports) {
+},{"./bundle-url":"../../../../../Users/Sergey/AppData/Roaming/npm/node_modules/parcel-bundler/src/builtins/bundle-url.js"}],"../node_modules/simplebar/dist/simplebar.css":[function(require,module,exports) {
+
+        var reloadCSS = require('_css_loader');
+        module.hot.dispose(reloadCSS);
+        module.hot.accept(reloadCSS);
+      
+},{"_css_loader":"../../../../../Users/Sergey/AppData/Roaming/npm/node_modules/parcel-bundler/src/builtins/css-loader.js"}],"main.scss":[function(require,module,exports) {
 var reloadCSS = require('_css_loader');
 
 module.hot.dispose(reloadCSS);
 module.hot.accept(reloadCSS);
-},{"_css_loader":"../../../../../Users/Sergey/AppData/Roaming/npm/node_modules/parcel-bundler/src/builtins/css-loader.js"}],"ts/lib/EventEmitter.ts":[function(require,module,exports) {
+},{"simplebar/dist/simplebar.css":"../node_modules/simplebar/dist/simplebar.css","_css_loader":"../../../../../Users/Sergey/AppData/Roaming/npm/node_modules/parcel-bundler/src/builtins/css-loader.js"}],"ts/lib/EventEmitter.ts":[function(require,module,exports) {
 "use strict";
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -561,6 +567,8 @@ function (_EventEmitter_1$defau) {
     _classCallCheck(this, BaseIOEntity);
 
     _this = _possibleConstructorReturn(this, _getPrototypeOf(BaseIOEntity).call(this));
+    _this.defaultInvitation = '>';
+    _this.invitation = _this.defaultInvitation;
     _this.commandManager = new CommandManager_1.default();
     _this._stopToken = false;
 
@@ -571,6 +579,24 @@ function (_EventEmitter_1$defau) {
   }
 
   _createClass(BaseIOEntity, [{
+    key: "setInvitation",
+    value: function setInvitation(inv) {
+      this.invitation = inv;
+    }
+  }, {
+    key: "dropInvitation",
+    value: function dropInvitation() {
+      this.invitation = this.defaultInvitation;
+    }
+  }, {
+    key: "run",
+    value: function run() {
+      // стоит сделать ещё один уровень абстракции.
+      this.emit('read', {
+        invitation: this.invitation
+      });
+    }
+  }, {
     key: "getInfo",
     value: function getInfo(command) {
       return this.commandManager.getInfo(command);
@@ -615,6 +641,26 @@ function (_EventEmitter_1$defau) {
     key: "out",
     value: function out(message) {
       this.emit('write', message);
+    }
+  }, {
+    key: "ask",
+    value: function ask(invitation) {
+      var _this3 = this;
+
+      this.emit('read', {
+        invitation: invitation,
+        question: true
+      });
+      return new Promise(function (resolve) {
+        _this3.on('reply', function (answer) {
+          resolve(answer);
+        });
+      });
+    }
+  }, {
+    key: "reply",
+    value: function reply(answer) {
+      this.emit('reply', answer);
     }
   }]);
 
@@ -704,6 +750,14 @@ function isError(obj) {
 }
 
 exports.isError = isError;
+
+function removeAllChildren(parent) {
+  while (parent.firstChild) {
+    parent.removeChild(parent.firstChild);
+  }
+}
+
+exports.removeAllChildren = removeAllChildren;
 },{}],"ts/apps/chat/ChatClient.ts":[function(require,module,exports) {
 "use strict";
 
@@ -785,6 +839,15 @@ function (_BaseIOEntity_1$defau) {
       return Promise.resolve(output);
     }
   }, {
+    key: "_messageTrigger",
+    value: function _messageTrigger(message) {
+      return {
+        command: '@message',
+        flags: [],
+        arguments: [message]
+      };
+    }
+  }, {
     key: "in",
     value: function _in(input) {
       var _this2 = this;
@@ -795,33 +858,20 @@ function (_BaseIOEntity_1$defau) {
       this.commandManager.tryExecute(trigger).then(function (output) {
         if (util_1.isError(output)) {
           error = output;
-          return _this2.commandManager.tryExecute({
-            command: '@message',
-            flags: [],
-            arguments: [input]
-          }).then(function (output) {
-            debugger;
+          return _this2.commandManager.tryExecute(_this2._messageTrigger(input)).then(function (output) {
+            var res = util_1.isError(output) ? error : undefined; // Это важно! Причина по которой не получилось отправить сообщение
+            // Может быть только одна - соединение закрыто, а значит нужно отобразить именно ошибку КОМАНДЫ!
 
-            if (util_1.isError(output)) {
-              return Promise.resolve(error); // Это важно! Причина по которой не получилось отправить сообщение
-              // Может быть только одна - соединение закрыто, а значит нужно отобразить ошибку КОМАНДЫ!
-            } else {
-              return Promise.resolve();
-            }
+            return Promise.resolve(res);
           });
         } else {
           return Promise.resolve(error);
         }
       }).then(this.reportErrors).then(function () {
         if (!_this2._stopToken) {
-          _this2.emit('read', {});
+          _this2.run();
         }
       });
-    }
-  }, {
-    key: "run",
-    value: function run() {
-      this.emit('read', {});
     }
   }]);
 
@@ -943,12 +993,13 @@ function (_Line_1$default) {
   function InputLine() {
     var _this;
 
+    var invitation = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '>';
+
     _classCallCheck(this, InputLine);
 
     _this = _possibleConstructorReturn(this, _getPrototypeOf(InputLine).call(this));
-    _this.invitation = '>';
     var $invitation = document.createElement('div');
-    $invitation.textContent = _this.invitation;
+    $invitation.textContent = invitation;
 
     _this._element.insertBefore($invitation, _this._textField);
 
@@ -1160,10 +1211,10 @@ function () {
     }
   }, {
     key: "read",
-    value: function read() {
+    value: function read(event) {
       var _this = this;
 
-      var line = new InputLine_1.default();
+      var line = new InputLine_1.default(event.invitation);
       this.screen.appendChild(line.element);
       this.activeLine = line;
       this.activeLine.focus();
@@ -1175,7 +1226,8 @@ function () {
         return Promise.resolve(input);
       }).then(function (input) {
         if (_this.attachedTo) {
-          _this.attachedTo.in(input);
+          var callback = event.question ? _this.attachedTo.reply : _this.attachedTo.in;
+          callback.call(_this.attachedTo, input);
         } else throw new Error('No IO entity attached!');
       });
     }
@@ -1349,8 +1401,12 @@ exports.commands = [{
     if (socket) {
       ctx.caller.out('Your are already connected');
       return Promise.resolve();
-    } else {
-      var client = ctx.caller;
+    } // Сделать запрос имеи пользователя:
+
+
+    var client = ctx.caller;
+    return client.ask('username').then(function (username) {
+      console.log(username);
       var ws = new WebSocket(client.url);
       ctx.caller.out('Connecting...');
       return new Promise(function (resolve) {
@@ -1358,18 +1414,20 @@ exports.commands = [{
           client.connect(ws);
           ctx.caller.executeCommand(CommandTrigger_1.default.getFrom('@clear'));
           ctx.caller.out('Connection successful!');
+          ctx.caller.setInvitation('$');
           resolve();
         };
 
         ws.onclose = function () {
           ctx.caller.out('Disconnected.');
+          ctx.caller.dropInvitation();
         };
 
         ws.onmessage = function (event) {
           ctx.caller.out(event.data);
         };
       });
-    }
+    });
   }
 }, {
   text: '@disconnect',
@@ -1393,7 +1451,6 @@ exports.commands = [{
     return ctx.params.length === 1;
   },
   action: function action(ctx) {
-    debugger;
     var socket = ctx.caller.socket;
 
     if (!socket) {
@@ -1463,7 +1520,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "49600" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "61176" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

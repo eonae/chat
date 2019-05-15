@@ -10,8 +10,12 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "pug": "^2.0.3",
     "sass": "^1.20.1",
-    "typescript": "^3.4.5",
-    "pug": "^2.0.3"
+    "typescript": "^3.4.5"
+  },
+  "dependencies": {
+    "@types/simplebar": "^2.4.2",
+    "simplebar": "^4.0.0-alpha.9"
   }
 }

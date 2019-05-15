@@ -43,9 +43,9 @@ export default class Terminal {
     }
   }
 
-  private read() : void {
+  private read(event: any) : void {
 
-    const line = new InputLine();
+    const line = new InputLine(event.invitation);
     this.screen.appendChild(line.element);
     this.activeLine = line;
     this.activeLine.focus();
@@ -59,7 +59,10 @@ export default class Terminal {
     })
     .then(input => {
       if (this.attachedTo) {
-        this.attachedTo.in(input);
+        const callback = (event.question)
+          ? this.attachedTo.reply
+          : this.attachedTo.in;
+        callback.call(this.attachedTo, input);
       } else throw new Error('No IO entity attached!');
     });
   }

@@ -31,27 +31,37 @@ export const commands: CommandDefinition[] = [
       if (socket) {
         ctx.caller.out('Your are already connected');
         return Promise.resolve();
-      } 
-      else {
-        const client = ctx.caller as ChatClient;
-        const ws = new WebSocket(client.url);
-        ctx.caller.out('Connecting...')
-        return new Promise(resolve => {
-          ws.onopen = () => {
-            client.connect(ws);
-            ctx.caller.executeCommand(CommandTrigger.getFrom('@clear'));
-            ctx.caller.out('Connection successful!');
-            resolve();
-          }
-          ws.onclose = () => {
-            ctx.caller.out('Disconnected.');
-          }
-          ws.onmessage = event => {
-            ctx.caller.out(event.data);
-          }
-        });
-
       }
+
+      // Сделать запрос имеи пользователя:
+
+      const client = ctx.caller as ChatClient;
+
+      return client.ask('username')
+        .then(username => {
+          console.log(username);
+          const ws = new WebSocket(client.url);
+          ctx.caller.out('Connecting...')
+          return new Promise(resolve => {
+            ws.onopen = () => {
+              client.connect(ws);
+              ctx.caller.executeCommand(CommandTrigger.getFrom('@clear'));
+              ctx.caller.out('Connection successful!');
+              ctx.caller.setInvitation('$');
+              resolve();
+            }
+            ws.onclose = () => {
+              ctx.caller.out('Disconnected.');
+              ctx.caller.dropInvitation();
+            }
+            ws.onmessage = event => {
+              ctx.caller.out(event.data);
+            }
+          });
+        })
+
+      
+      
     },
   },
   
@@ -80,7 +90,6 @@ export const commands: CommandDefinition[] = [
       return ctx.params.length === 1;
     },
     action: (ctx) => {
-      debugger;
       const socket = (ctx.caller as ChatClient).socket;
 
       if (!socket) {
@@ -90,7 +99,6 @@ export const commands: CommandDefinition[] = [
         socket.send(ctx.params[0]);
         return Promise.resolve();
       }
-      
     },
   },
 

@@ -8,3 +8,10 @@ export function bind(owner: any, toBind: Function | Function[]): void {
 export function isError(obj: any) {
   return obj instanceof Error;
 }
+
+export function removeAllChildren(parent: Element) : void {
+
+  while (parent.firstChild) {
+    parent.removeChild(parent.firstChild);
+  }
+}
