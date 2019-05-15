@@ -1,8 +1,21 @@
+// import './main.scss';
+// import CommandShell from './ts/apps/shell/CommandShell';
+// import Terminal from './ts/views/Terminal';
+// import { commands } from './ts/apps/shell/commands';
+
+// const view = new Terminal('.screen');
+// const shell = new CommandShell(commands);
+
+// view.attachTo(shell);
+// shell.run();
+
 import './main.scss';
-import { Terminal } from './ts/terminal/Terminal';
-import { TerminalView } from './ts/views/TerminalView';
-import { commands } from './ts/terminal/Commands';
+import ChatClient from './ts/apps/chat/ChatClient';
+import Terminal from './ts/views/Terminal';
+import { commands } from './ts/apps/chat/commands';
 
-const terminal = new Terminal(new TerminalView('.screen'), commands);
+const view = new Terminal('.screen');
+const chat = new ChatClient(commands, 'ws://localhost:1200');
 
-terminal.run();
+view.attachTo(chat);
+chat.run();

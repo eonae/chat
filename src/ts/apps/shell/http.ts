@@ -1,4 +1,4 @@
-import { CommandDefinition } from "./Command";
+import { CommandDefinition } from "../../lib/base/types";
 
 const allowedMethods = ['get', 'delete'];
 const allowedContentTypes = [ /text\//, /application\/json/ ];
@@ -66,23 +66,23 @@ export const http: CommandDefinition = {
       .then(response => {
         const contentType = response.headers.get('Content-Type');
         if (!contentType) {
-          ctx.caller.view.write('"Content-Type" header not found');
+          ctx.caller.out('"Content-Type" header not found');
           return Promise.resolve('');
         } else if (!isAllowedContentType(contentType)) {
-          ctx.caller.view.write(`Content type "${contentType}" is not supported`);
+          ctx.caller.out(`Content type "${contentType}" is not supported`);
           return Promise.resolve('');
         } else {
-          ctx.caller.view.write(`Content-Type: "${contentType}"`);
+          ctx.caller.out(`Content-Type: "${contentType}"`);
           return response.text()
         }
 
       })
       .then(data => {
           if (typeof data === 'string')
-            ctx.caller.view.write(data);
+            ctx.caller.out(data);
       })
       .catch(err => {
-        ctx.caller.view.write(err.message);
+        ctx.caller.out(err.message);
       })
   }
 }

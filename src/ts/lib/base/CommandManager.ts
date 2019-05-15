@@ -1,15 +1,9 @@
-import { CommandDefinition, Command, Flag } from './Command';
-import ParsedInput from './ParsedInput';
-import { ITerminal } from './Terminal';
+import Command from './Command';
+import CommandTrigger from './CommandTrigger';
+import BaseIOEntity from './BaseIOEntity';
+import { CommandInfo, CommandDefinition } from './types';
 
-export type CommandInfo = {
-  name: string;
-  aliases: string[];
-  info: string;
-  flags: Flag[];
-}
-
-export class CommandManager {
+export default class CommandManager {
 
   private _map = new Map<string, Command>();
 
@@ -33,7 +27,7 @@ export class CommandManager {
       .map(command => command.text);
   }
 
-  public register(definitions: CommandDefinition[], terminal: ITerminal) {
+  public register(definitions: CommandDefinition[], terminal: BaseIOEntity) {
     definitions.forEach(def => {
       this.checkDef(def);
       const cmd = new Command(def, terminal);
@@ -42,10 +36,10 @@ export class CommandManager {
     })
   }
 
-  tryExecute(input: ParsedInput) : Promise<Error | void> {
-    const cmd = this._map.get(input.command);
+  tryExecute(trigger: CommandTrigger) : Promise<Error | void> {
+    const cmd = this._map.get(trigger.command);
     return (cmd !== undefined)
-      ? cmd.exec(input.arguments, input.flags)
+      ? cmd.exec(trigger.arguments, trigger.flags)
       : Promise.resolve(new Error('Command not found'));
   }
 

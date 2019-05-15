@@ -15,7 +15,6 @@ export default class InputLine extends Line {
     const $input = document.createElement('input');
     $input.type = 'text';
     this._element.insertBefore($input, this._textField);
-
     this._input = $input;
 
     this._textField.classList.add('hidden');
@@ -33,7 +32,6 @@ export default class InputLine extends Line {
     enum Keys { ENTER = 13 };
 
     if (event.keyCode === Keys.ENTER && this._input === document.activeElement) {
-
       this.commit();
     }
   }

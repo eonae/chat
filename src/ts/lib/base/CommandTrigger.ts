@@ -1,18 +1,18 @@
-export default class ParsedInput {
+export default class CommandTrigger {
 
   public command: string = '';
   public arguments: string[] = [];
   public flags: string[] = [];
 
-  public static getFrom(source: string) : ParsedInput {
-    const result = new ParsedInput();
+  public static getFrom(source: string) : CommandTrigger {
+    const trigger = new CommandTrigger();
     const arr = source.trim().split(' ');
-    result.command = arr[0];
+    trigger.command = arr[0];
     arr.splice(0, 1);
-    result.flags = ParsedInput.refineFlags(arr.filter(item => ParsedInput.isFlag(item)));
-    result.arguments = arr.filter(item => !ParsedInput.isFlag(item));
+    trigger.flags = CommandTrigger.refineFlags(arr.filter(item => CommandTrigger.isFlag(item)));
+    trigger.arguments = arr.filter(item => !CommandTrigger.isFlag(item));
 
-    return result;
+    return trigger;
   }
 
   private static isFlag(value: string) : boolean {

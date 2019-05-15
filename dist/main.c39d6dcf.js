@@ -189,490 +189,7 @@ var reloadCSS = require('_css_loader');
 
 module.hot.dispose(reloadCSS);
 module.hot.accept(reloadCSS);
-},{"_css_loader":"../../../../../Users/Sergey/AppData/Roaming/npm/node_modules/parcel-bundler/src/builtins/css-loader.js"}],"ts/terminal/Command.ts":[function(require,module,exports) {
-"use strict";
-
-function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
-
-function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var Command =
-/*#__PURE__*/
-function () {
-  function Command(def, caller) {
-    var _this = this;
-
-    _classCallCheck(this, Command);
-
-    this._flags = [];
-    this.text = def.text;
-    this._action = def.action;
-    this._validation = def.validation;
-    this._terminal = caller;
-    this.info = def.info ? def.info : 'No info for this command';
-
-    if (def.aliases) {
-      this._aliases = typeof def.aliases === 'string' ? [def.aliases] : def.aliases;
-    } else {
-      this._aliases = [];
-    }
-
-    if (def.flags) {
-      def.flags.forEach(function (f) {
-        if (typeof f === 'string') {
-          _this._flags.push({
-            name: f,
-            info: 'No info for this flag',
-            aliases: [],
-            type: 'boolean'
-          });
-        } else {
-          _this._flags.push(f);
-        }
-      });
-    }
-  }
-
-  _createClass(Command, [{
-    key: "exec",
-    value: function exec(params, flags) {
-      // Checking flags correctness
-      var resolvedFlags;
-
-      try {
-        resolvedFlags = this._resolveFlags(flags);
-      } catch (err) {
-        return Promise.resolve(err);
-      } // Validating parameters
-
-
-      var ctx = {
-        params: params,
-        flags: resolvedFlags,
-        caller: this._terminal,
-        processed: undefined
-      };
-
-      var val = this._validation(ctx);
-
-      var result = typeof val === 'boolean' ? val : val.result;
-
-      if (!result) {
-        var error = typeof val === 'boolean' ? new Error('Invalid parameters!') : val.error;
-        return Promise.resolve(error);
-      }
-
-      if (typeof val !== 'boolean' && val.processed) {
-        ctx.processed = val.processed;
-      }
-
-      return this._action(ctx);
-    }
-  }, {
-    key: "_resolveFlags",
-    value: function _resolveFlags(flags) {
-      var _this2 = this;
-
-      var hash = {};
-      flags.forEach(function (rawFlag) {
-        debugger;
-        var arr = rawFlag.split('=');
-        if (arr.length > 2) throw new Error('Invalid flag!');
-
-        var _ref = arr.length === 1 ? {
-          flag: arr[0],
-          value: true
-        } : {
-          flag: arr[0],
-          value: arr[1]
-        },
-            flag = _ref.flag,
-            value = _ref.value;
-
-        var findByName = _this2._flags.find(function (f) {
-          return f.name === flag;
-        });
-
-        if (findByName) {
-          if (findByName.type === _typeof(value)) hash[flag] = value;else throw new Error("Invalid value for flag".concat(flag));
-        } else {
-          var findByAlias = _this2._flags.find(function (f) {
-            return f.aliases.indexOf(flag) !== -1;
-          });
-
-          if (findByAlias) {
-            if (findByAlias.type === _typeof(value)) hash[flag] = value;else throw new Error("Invalid value for flag".concat(flag));
-          } else throw new Error('Invalid flag!');
-        }
-      });
-      return hash;
-    }
-  }, {
-    key: "bindToTerminal",
-    value: function bindToTerminal(terminal) {
-      if (!this._terminal) this._terminal = terminal;
-    }
-  }, {
-    key: "flags",
-    get: function get() {
-      return this._flags.slice(0);
-    }
-  }, {
-    key: "aliases",
-    get: function get() {
-      return this._aliases.slice(0);
-    }
-  }]);
-
-  return Command;
-}();
-
-exports.Command = Command;
-},{}],"ts/terminal/CommandManager.ts":[function(require,module,exports) {
-"use strict";
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
-
-function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var Command_1 = require("./Command");
-
-var CommandManager =
-/*#__PURE__*/
-function () {
-  function CommandManager() {
-    _classCallCheck(this, CommandManager);
-
-    this._map = new Map();
-  }
-
-  _createClass(CommandManager, [{
-    key: "getInfo",
-    value: function getInfo(commandName) {
-      var cmd = this._map.get(commandName);
-
-      return cmd ? {
-        name: cmd.text,
-        aliases: cmd.aliases,
-        info: cmd.info,
-        flags: cmd.flags
-      } : undefined;
-    }
-  }, {
-    key: "getCommandsList",
-    value: function getCommandsList() {
-      return Array.from(this._map.values()).filter(function (value, index, self) {
-        return self.indexOf(value) === index;
-      }).map(function (command) {
-        return command.text;
-      });
-    }
-  }, {
-    key: "register",
-    value: function register(definitions, terminal) {
-      var _this = this;
-
-      definitions.forEach(function (def) {
-        _this.checkDef(def);
-
-        var cmd = new Command_1.Command(def, terminal);
-
-        _this._map.set(cmd.text, cmd);
-
-        cmd.aliases.forEach(function (alias) {
-          return _this._map.set(alias, cmd);
-        });
-      });
-    }
-  }, {
-    key: "tryExecute",
-    value: function tryExecute(input) {
-      var cmd = this._map.get(input.command);
-
-      return cmd !== undefined ? cmd.exec(input.arguments, input.flags) : Promise.resolve(new Error('Command not found'));
-    }
-  }, {
-    key: "checkDef",
-    value: function checkDef(def) {
-      if (this._map.has(def.text)) {
-        throw new Error("Command ".concat(def.text, " already registered!"));
-      }
-
-      if (def.aliases) {
-        var _iteratorNormalCompletion = true;
-        var _didIteratorError = false;
-        var _iteratorError = undefined;
-
-        try {
-          for (var _iterator = def.aliases[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-            var alias = _step.value;
-
-            if (this._map.has(alias)) {
-              throw new Error("Alias ".concat(alias, " is already registered!"));
-            }
-          }
-        } catch (err) {
-          _didIteratorError = true;
-          _iteratorError = err;
-        } finally {
-          try {
-            if (!_iteratorNormalCompletion && _iterator.return != null) {
-              _iterator.return();
-            }
-          } finally {
-            if (_didIteratorError) {
-              throw _iteratorError;
-            }
-          }
-        }
-      }
-    }
-  }]);
-
-  return CommandManager;
-}();
-
-exports.CommandManager = CommandManager;
-},{"./Command":"ts/terminal/Command.ts"}],"ts/terminal/ParsedInput.ts":[function(require,module,exports) {
-"use strict";
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
-
-function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var ParsedInput =
-/*#__PURE__*/
-function () {
-  function ParsedInput() {
-    _classCallCheck(this, ParsedInput);
-
-    this.command = '';
-    this.arguments = [];
-    this.flags = [];
-  }
-
-  _createClass(ParsedInput, null, [{
-    key: "getFrom",
-    value: function getFrom(source) {
-      var result = new ParsedInput();
-      var arr = source.trim().split(' ');
-      result.command = arr[0];
-      arr.splice(0, 1);
-      result.flags = ParsedInput.refineFlags(arr.filter(function (item) {
-        return ParsedInput.isFlag(item);
-      }));
-      result.arguments = arr.filter(function (item) {
-        return !ParsedInput.isFlag(item);
-      });
-      return result;
-    }
-  }, {
-    key: "isFlag",
-    value: function isFlag(value) {
-      return /^\-{1,2}/.test(value);
-    }
-  }, {
-    key: "refineFlags",
-    value: function refineFlags(flags) {
-      var result = [];
-      flags.forEach(function (f) {
-        var temp = f.substr(1); // Удаляем первый слэш
-
-        if (temp.substr(0, 1) === '-') result.push(temp.substr(1));else result = result.concat(temp.split(''));
-      });
-      return result;
-    }
-  }]);
-
-  return ParsedInput;
-}();
-
-exports.default = ParsedInput;
-},{}],"ts/lib/Logger.ts":[function(require,module,exports) {
-"use strict";
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
-
-function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var Logger =
-/*#__PURE__*/
-function () {
-  function Logger() {
-    _classCallCheck(this, Logger);
-  }
-
-  _createClass(Logger, [{
-    key: "info",
-    value: function info(msg) {
-      console.log(msg);
-    }
-  }]);
-
-  return Logger;
-}();
-
-exports.Logger = Logger;
-
-var AdvancedLogger =
-/*#__PURE__*/
-function () {
-  function AdvancedLogger() {
-    _classCallCheck(this, AdvancedLogger);
-  }
-
-  _createClass(AdvancedLogger, [{
-    key: "info",
-    value: function info(msg) {
-      console.log("".concat(Date.now(), " > ").concat(msg));
-    }
-  }]);
-
-  return AdvancedLogger;
-}();
-
-exports.AdvancedLogger = AdvancedLogger;
-},{}],"ts/terminal/Terminal.ts":[function(require,module,exports) {
-"use strict";
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
-
-function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
-
-var __importDefault = this && this.__importDefault || function (mod) {
-  return mod && mod.__esModule ? mod : {
-    "default": mod
-  };
-};
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var CommandManager_1 = require("./CommandManager");
-
-var ParsedInput_1 = __importDefault(require("./ParsedInput"));
-
-var Logger_1 = require("../lib/Logger");
-
-var Terminal =
-/*#__PURE__*/
-function () {
-  function Terminal(view, commands) {
-    _classCallCheck(this, Terminal);
-
-    this._stopToken = false;
-    this.commandManager = new CommandManager_1.CommandManager();
-    this.logger = new Logger_1.Logger();
-    this.view = view;
-    this.commandManager.register(commands, this);
-    this.readAndExecute = this.readAndExecute.bind(this);
-    this.handleCommandOutput = this.handleCommandOutput.bind(this);
-    this.newCycle = this.newCycle.bind(this);
-  }
-
-  _createClass(Terminal, [{
-    key: "use",
-    value: function use(dependency) {
-      switch (dependency.tag) {
-        case 'logger':
-          this.logger = dependency;
-          break;
-      }
-
-      this.logger.info("new ".concat(dependency.tag, " is set"));
-    }
-  }, {
-    key: "readAndExecute",
-    value: function readAndExecute() {
-      var _this = this;
-
-      return this.view.read().then(function (input) {
-        var parsedInput = ParsedInput_1.default.getFrom(input);
-        return parsedInput.command ? _this.commandManager.tryExecute(parsedInput) : Promise.resolve();
-      });
-    }
-  }, {
-    key: "handleCommandOutput",
-    value: function handleCommandOutput(output) {
-      if (output instanceof Error) {
-        this.view.write(output.message);
-      }
-    }
-  }, {
-    key: "newCycle",
-    value: function newCycle() {
-      return this._stopToken ? Promise.reject('exit') : this.readAndExecute().then(this.handleCommandOutput).then(this.newCycle);
-    }
-  }, {
-    key: "startLoop",
-    value: function startLoop() {
-      Promise.resolve().then(this.newCycle).catch(function (reason) {
-        console.log(reason);
-      });
-    }
-  }, {
-    key: "stop",
-    value: function stop() {
-      this._stopToken = true;
-    }
-  }, {
-    key: "run",
-    value: function run() {
-      // Запускает в режиме командной строки
-      this.view.write("<b><i>Welcome!</i><b>");
-      this.startLoop();
-    }
-  }, {
-    key: "getInfo",
-    value: function getInfo(command) {
-      return this.commandManager.getInfo(command);
-    }
-  }, {
-    key: "getAllCommandsInfo",
-    value: function getAllCommandsInfo() {
-      var _this2 = this;
-
-      var list = this.commandManager.getCommandsList();
-      return list.map(function (name) {
-        return _this2.commandManager.getInfo(name);
-      });
-    }
-  }]);
-
-  return Terminal;
-}();
-
-exports.Terminal = Terminal;
-},{"./CommandManager":"ts/terminal/CommandManager.ts","./ParsedInput":"ts/terminal/ParsedInput.ts","../lib/Logger":"ts/lib/Logger.ts"}],"ts/lib/EventEmitter.ts":[function(require,module,exports) {
+},{"_css_loader":"../../../../../Users/Sergey/AppData/Roaming/npm/node_modules/parcel-bundler/src/builtins/css-loader.js"}],"ts/lib/EventEmitter.ts":[function(require,module,exports) {
 "use strict";
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -739,7 +256,580 @@ function () {
 }();
 
 exports.default = EventEmitter;
-},{}],"ts/views/Line.ts":[function(require,module,exports) {
+},{}],"ts/lib/base/Command.ts":[function(require,module,exports) {
+"use strict";
+
+function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var Command =
+/*#__PURE__*/
+function () {
+  function Command(def, caller) {
+    var _this = this;
+
+    _classCallCheck(this, Command);
+
+    this._flags = [];
+    this.text = def.text;
+    this._action = def.action;
+    this._validation = def.validation;
+    this._caller = caller;
+    this.info = def.info ? def.info : 'No info for this command';
+
+    if (def.aliases) {
+      this._aliases = typeof def.aliases === 'string' ? [def.aliases] : def.aliases;
+    } else {
+      this._aliases = [];
+    }
+
+    if (def.flags) {
+      def.flags.forEach(function (f) {
+        if (typeof f === 'string') {
+          _this._flags.push({
+            name: f,
+            info: 'No info for this flag',
+            aliases: [],
+            type: 'boolean'
+          });
+        } else {
+          _this._flags.push(f);
+        }
+      });
+    }
+  }
+
+  _createClass(Command, [{
+    key: "exec",
+    value: function exec(params, flags) {
+      // Checking flags correctness
+      var resolvedFlags;
+
+      try {
+        resolvedFlags = this._resolveFlags(flags);
+      } catch (err) {
+        return Promise.resolve(err);
+      } // Validating parameters
+
+
+      var ctx = {
+        params: params,
+        flags: resolvedFlags,
+        caller: this._caller,
+        processed: undefined
+      };
+
+      var val = this._validation(ctx);
+
+      var result = typeof val === 'boolean' ? val : val.result;
+
+      if (!result) {
+        var error = typeof val === 'boolean' ? new Error('Invalid parameters!') : val.error;
+        return Promise.resolve(error);
+      }
+
+      if (typeof val !== 'boolean' && val.processed) {
+        ctx.processed = val.processed;
+      }
+
+      return this._action(ctx);
+    }
+  }, {
+    key: "_resolveFlags",
+    value: function _resolveFlags(flags) {
+      var _this2 = this;
+
+      var hash = {};
+      flags.forEach(function (rawFlag) {
+        debugger;
+        var arr = rawFlag.split('=');
+        if (arr.length > 2) throw new Error('Invalid flag!');
+
+        var _ref = arr.length === 1 ? {
+          flag: arr[0],
+          value: true
+        } : {
+          flag: arr[0],
+          value: arr[1]
+        },
+            flag = _ref.flag,
+            value = _ref.value;
+
+        var findByName = _this2._flags.find(function (f) {
+          return f.name === flag;
+        });
+
+        if (findByName) {
+          if (findByName.type === _typeof(value)) hash[flag] = value;else throw new Error("Invalid value for flag".concat(flag));
+        } else {
+          var findByAlias = _this2._flags.find(function (f) {
+            return f.aliases.indexOf(flag) !== -1;
+          });
+
+          if (findByAlias) {
+            if (findByAlias.type === _typeof(value)) hash[flag] = value;else throw new Error("Invalid value for flag".concat(flag));
+          } else throw new Error('Invalid flag!');
+        }
+      });
+      return hash;
+    }
+  }, {
+    key: "flags",
+    get: function get() {
+      return this._flags.slice(0);
+    }
+  }, {
+    key: "aliases",
+    get: function get() {
+      return this._aliases.slice(0);
+    }
+  }]);
+
+  return Command;
+}();
+
+exports.default = Command;
+},{}],"ts/lib/base/CommandManager.ts":[function(require,module,exports) {
+"use strict";
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+var __importDefault = this && this.__importDefault || function (mod) {
+  return mod && mod.__esModule ? mod : {
+    "default": mod
+  };
+};
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var Command_1 = __importDefault(require("./Command"));
+
+var CommandManager =
+/*#__PURE__*/
+function () {
+  function CommandManager() {
+    _classCallCheck(this, CommandManager);
+
+    this._map = new Map();
+  }
+
+  _createClass(CommandManager, [{
+    key: "getInfo",
+    value: function getInfo(commandName) {
+      var cmd = this._map.get(commandName);
+
+      return cmd ? {
+        name: cmd.text,
+        aliases: cmd.aliases,
+        info: cmd.info,
+        flags: cmd.flags
+      } : undefined;
+    }
+  }, {
+    key: "getCommandsList",
+    value: function getCommandsList() {
+      return Array.from(this._map.values()).filter(function (value, index, self) {
+        return self.indexOf(value) === index;
+      }).map(function (command) {
+        return command.text;
+      });
+    }
+  }, {
+    key: "register",
+    value: function register(definitions, terminal) {
+      var _this = this;
+
+      definitions.forEach(function (def) {
+        _this.checkDef(def);
+
+        var cmd = new Command_1.default(def, terminal);
+
+        _this._map.set(cmd.text, cmd);
+
+        cmd.aliases.forEach(function (alias) {
+          return _this._map.set(alias, cmd);
+        });
+      });
+    }
+  }, {
+    key: "tryExecute",
+    value: function tryExecute(trigger) {
+      var cmd = this._map.get(trigger.command);
+
+      return cmd !== undefined ? cmd.exec(trigger.arguments, trigger.flags) : Promise.resolve(new Error('Command not found'));
+    }
+  }, {
+    key: "checkDef",
+    value: function checkDef(def) {
+      if (this._map.has(def.text)) {
+        throw new Error("Command ".concat(def.text, " already registered!"));
+      }
+
+      if (def.aliases) {
+        var _iteratorNormalCompletion = true;
+        var _didIteratorError = false;
+        var _iteratorError = undefined;
+
+        try {
+          for (var _iterator = def.aliases[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+            var alias = _step.value;
+
+            if (this._map.has(alias)) {
+              throw new Error("Alias ".concat(alias, " is already registered!"));
+            }
+          }
+        } catch (err) {
+          _didIteratorError = true;
+          _iteratorError = err;
+        } finally {
+          try {
+            if (!_iteratorNormalCompletion && _iterator.return != null) {
+              _iterator.return();
+            }
+          } finally {
+            if (_didIteratorError) {
+              throw _iteratorError;
+            }
+          }
+        }
+      }
+    }
+  }]);
+
+  return CommandManager;
+}();
+
+exports.default = CommandManager;
+},{"./Command":"ts/lib/base/Command.ts"}],"ts/lib/base/BaseIOEntity.ts":[function(require,module,exports) {
+"use strict";
+
+function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+function _possibleConstructorReturn(self, call) { if (call && (_typeof(call) === "object" || typeof call === "function")) { return call; } return _assertThisInitialized(self); }
+
+function _getPrototypeOf(o) { _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) { return o.__proto__ || Object.getPrototypeOf(o); }; return _getPrototypeOf(o); }
+
+function _assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function"); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, writable: true, configurable: true } }); if (superClass) _setPrototypeOf(subClass, superClass); }
+
+function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return _setPrototypeOf(o, p); }
+
+var __importDefault = this && this.__importDefault || function (mod) {
+  return mod && mod.__esModule ? mod : {
+    "default": mod
+  };
+};
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var EventEmitter_1 = __importDefault(require("../EventEmitter"));
+
+var CommandManager_1 = __importDefault(require("./CommandManager"));
+
+var BaseIOEntity =
+/*#__PURE__*/
+function (_EventEmitter_1$defau) {
+  _inherits(BaseIOEntity, _EventEmitter_1$defau);
+
+  function BaseIOEntity(commands) {
+    var _this;
+
+    _classCallCheck(this, BaseIOEntity);
+
+    _this = _possibleConstructorReturn(this, _getPrototypeOf(BaseIOEntity).call(this));
+    _this.commandManager = new CommandManager_1.default();
+    _this._stopToken = false;
+
+    _this.commandManager.register(commands, _assertThisInitialized(_this));
+
+    _this.in = _this.in.bind(_assertThisInitialized(_this));
+    return _this;
+  }
+
+  _createClass(BaseIOEntity, [{
+    key: "getInfo",
+    value: function getInfo(command) {
+      return this.commandManager.getInfo(command);
+    }
+  }, {
+    key: "getAllCommandsInfo",
+    value: function getAllCommandsInfo() {
+      var _this2 = this;
+
+      var list = this.commandManager.getCommandsList();
+      return list.map(function (name) {
+        return _this2.commandManager.getInfo(name);
+      });
+    }
+  }, {
+    key: "executeCommand",
+    value: function executeCommand(trigger) {
+      // Надо переименовать класс CommandTrigger во что-то другое..
+      return this.commandManager.tryExecute(trigger);
+    }
+  }, {
+    key: "stop",
+    value: function stop() {
+      this._stopToken = true;
+    }
+  }, {
+    key: "onread",
+    value: function onread(callback) {
+      this.on('read', callback);
+    }
+  }, {
+    key: "onwrite",
+    value: function onwrite(callback) {
+      this.on('write', callback);
+    }
+  }, {
+    key: "onclear",
+    value: function onclear(callback) {
+      this.on('clear', callback);
+    }
+  }, {
+    key: "out",
+    value: function out(message) {
+      this.emit('write', message);
+    }
+  }]);
+
+  return BaseIOEntity;
+}(EventEmitter_1.default);
+
+exports.default = BaseIOEntity;
+},{"../EventEmitter":"ts/lib/EventEmitter.ts","./CommandManager":"ts/lib/base/CommandManager.ts"}],"ts/lib/base/CommandTrigger.ts":[function(require,module,exports) {
+"use strict";
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var CommandTrigger =
+/*#__PURE__*/
+function () {
+  function CommandTrigger() {
+    _classCallCheck(this, CommandTrigger);
+
+    this.command = '';
+    this.arguments = [];
+    this.flags = [];
+  }
+
+  _createClass(CommandTrigger, null, [{
+    key: "getFrom",
+    value: function getFrom(source) {
+      var trigger = new CommandTrigger();
+      var arr = source.trim().split(' ');
+      trigger.command = arr[0];
+      arr.splice(0, 1);
+      trigger.flags = CommandTrigger.refineFlags(arr.filter(function (item) {
+        return CommandTrigger.isFlag(item);
+      }));
+      trigger.arguments = arr.filter(function (item) {
+        return !CommandTrigger.isFlag(item);
+      });
+      return trigger;
+    }
+  }, {
+    key: "isFlag",
+    value: function isFlag(value) {
+      return /^\-{1,2}/.test(value);
+    }
+  }, {
+    key: "refineFlags",
+    value: function refineFlags(flags) {
+      var result = [];
+      flags.forEach(function (f) {
+        var temp = f.substr(1); // Удаляем первый слэш
+
+        if (temp.substr(0, 1) === '-') result.push(temp.substr(1));else result = result.concat(temp.split(''));
+      });
+      return result;
+    }
+  }]);
+
+  return CommandTrigger;
+}();
+
+exports.default = CommandTrigger;
+},{}],"ts/lib/util.ts":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+function bind(owner, toBind) {
+  if (!(toBind instanceof Array)) toBind = [toBind];
+  toBind.forEach(function (method) {
+    owner[method.name] = method.bind(owner);
+  });
+}
+
+exports.bind = bind;
+
+function isError(obj) {
+  return obj instanceof Error;
+}
+
+exports.isError = isError;
+},{}],"ts/apps/chat/ChatClient.ts":[function(require,module,exports) {
+"use strict";
+
+function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (call && (_typeof(call) === "object" || typeof call === "function")) { return call; } return _assertThisInitialized(self); }
+
+function _getPrototypeOf(o) { _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) { return o.__proto__ || Object.getPrototypeOf(o); }; return _getPrototypeOf(o); }
+
+function _assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function"); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, writable: true, configurable: true } }); if (superClass) _setPrototypeOf(subClass, superClass); }
+
+function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return _setPrototypeOf(o, p); }
+
+var __importDefault = this && this.__importDefault || function (mod) {
+  return mod && mod.__esModule ? mod : {
+    "default": mod
+  };
+};
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var BaseIOEntity_1 = __importDefault(require("../../lib/base/BaseIOEntity"));
+
+var CommandTrigger_1 = __importDefault(require("../../lib/base/CommandTrigger"));
+
+var util_1 = require("../../lib/util");
+
+var ChatClient =
+/*#__PURE__*/
+function (_BaseIOEntity_1$defau) {
+  _inherits(ChatClient, _BaseIOEntity_1$defau);
+
+  _createClass(ChatClient, [{
+    key: "connect",
+    value: function connect(socket) {
+      this._socket = socket;
+    }
+  }, {
+    key: "disconnect",
+    value: function disconnect() {
+      this._socket = undefined;
+    }
+  }, {
+    key: "socket",
+    get: function get() {
+      return this._socket;
+    }
+  }]);
+
+  function ChatClient(commands, url) {
+    var _this;
+
+    _classCallCheck(this, ChatClient);
+
+    _this = _possibleConstructorReturn(this, _getPrototypeOf(ChatClient).call(this, commands));
+    _this.url = url;
+    _this.in = _this.in.bind(_assertThisInitialized(_this));
+    _this.reportErrors = _this.reportErrors.bind(_assertThisInitialized(_this));
+    return _this;
+  }
+
+  _createClass(ChatClient, [{
+    key: "reportErrors",
+    value: function reportErrors(output) {
+      if (util_1.isError(output)) {
+        this.emit('write', output.message);
+      }
+
+      return Promise.resolve(output);
+    }
+  }, {
+    key: "in",
+    value: function _in(input) {
+      var _this2 = this;
+
+      var trigger = CommandTrigger_1.default.getFrom(input);
+      var error; // Не знаю, как сделать по-другому. Надо разбираться
+
+      this.commandManager.tryExecute(trigger).then(function (output) {
+        if (util_1.isError(output)) {
+          error = output;
+          return _this2.commandManager.tryExecute({
+            command: '@message',
+            flags: [],
+            arguments: [input]
+          }).then(function (output) {
+            debugger;
+
+            if (util_1.isError(output)) {
+              return Promise.resolve(error); // Это важно! Причина по которой не получилось отправить сообщение
+              // Может быть только одна - соединение закрыто, а значит нужно отобразить ошибку КОМАНДЫ!
+            } else {
+              return Promise.resolve();
+            }
+          });
+        } else {
+          return Promise.resolve(error);
+        }
+      }).then(this.reportErrors).then(function () {
+        if (!_this2._stopToken) {
+          _this2.emit('read', {});
+        }
+      });
+    }
+  }, {
+    key: "run",
+    value: function run() {
+      this.emit('read', {});
+    }
+  }]);
+
+  return ChatClient;
+}(BaseIOEntity_1.default);
+
+exports.default = ChatClient;
+},{"../../lib/base/BaseIOEntity":"ts/lib/base/BaseIOEntity.ts","../../lib/base/CommandTrigger":"ts/lib/base/CommandTrigger.ts","../../lib/util":"ts/lib/util.ts"}],"ts/views/Line.ts":[function(require,module,exports) {
 "use strict";
 
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
@@ -1006,7 +1096,7 @@ function () {
 }();
 
 exports.default = InputSaver;
-},{}],"ts/views/TerminalView.ts":[function(require,module,exports) {
+},{}],"ts/views/Terminal.ts":[function(require,module,exports) {
 "use strict";
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -1031,38 +1121,62 @@ var InputLine_1 = __importDefault(require("./InputLine"));
 
 var InputSaver_1 = __importDefault(require("../lib/InputSaver"));
 
-var TerminalView =
+var util_1 = require("../lib/util"); // class BaseTerminal {
+// }
+
+
+var Terminal =
 /*#__PURE__*/
 function () {
-  function TerminalView(screenSelector) {
-    _classCallCheck(this, TerminalView);
+  function Terminal(screenSelector) {
+    _classCallCheck(this, Terminal);
 
     this.InputSaver = new InputSaver_1.default();
     var screen = document.querySelector(screenSelector);
     if (screen !== null) this.screen = screen;else throw new Error('invalid selector for console screen');
     this.screen.addEventListener('click', this.handleClick.bind(this));
     window.addEventListener('keydown', this.handleKeys.bind(this));
+    util_1.bind(this, [this.read, this.write, this.clear]);
   }
 
-  _createClass(TerminalView, [{
+  _createClass(Terminal, [{
+    key: "attachTo",
+    value: function attachTo(obj) {
+      if (this.attachedTo) this.deattach();
+      obj.onread(this.read);
+      obj.onwrite(this.write);
+      obj.onclear(this.clear);
+      this.attachedTo = obj;
+    }
+  }, {
+    key: "deattach",
+    value: function deattach() {
+      if (this.attachedTo) {
+        this.attachedTo.off('read', this.read);
+        this.attachedTo.off('write', this.write);
+        this.attachedTo.off('clear', this.clear);
+        this.attachedTo = undefined;
+      }
+    }
+  }, {
     key: "read",
     value: function read() {
       var _this = this;
 
-      return new Promise(function (resolve) {
-        var line = new InputLine_1.default();
-
-        _this.screen.appendChild(line.element);
-
-        _this.activeLine = line;
-
-        _this.activeLine.focus();
-
+      var line = new InputLine_1.default();
+      this.screen.appendChild(line.element);
+      this.activeLine = line;
+      this.activeLine.focus();
+      new Promise(function (resolve) {
         line.on('commit', resolve);
       }).then(function (input) {
         _this.InputSaver.push(input);
 
         return Promise.resolve(input);
+      }).then(function (input) {
+        if (_this.attachedTo) {
+          _this.attachedTo.in(input);
+        } else throw new Error('No IO entity attached!');
       });
     }
   }, {
@@ -1084,16 +1198,6 @@ function () {
 
         this.screen.removeChild(this.screen.firstChild);
       }
-    }
-  }, {
-    key: "block",
-    value: function block() {
-      console.log('TerminalView.block() not implemented!');
-    }
-  }, {
-    key: "unblock",
-    value: function unblock() {
-      console.log('TerminalView.unblock() not implemented!');
     }
   }, {
     key: "handleKeys",
@@ -1124,182 +1228,214 @@ function () {
     }
   }]);
 
-  return TerminalView;
+  return Terminal;
 }();
 
-exports.TerminalView = TerminalView;
-},{"./Line":"ts/views/Line.ts","./InputLine":"ts/views/InputLine.ts","../lib/InputSaver":"ts/lib/InputSaver.ts"}],"ts/terminal/http.ts":[function(require,module,exports) {
+exports.default = Terminal;
+},{"./Line":"ts/views/Line.ts","./InputLine":"ts/views/InputLine.ts","../lib/InputSaver":"ts/lib/InputSaver.ts","../lib/util":"ts/lib/util.ts"}],"ts/lib/base/defaultCommands.ts":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-var allowedMethods = ['get', 'delete'];
-var allowedContentTypes = [/text\//, /application\/json/];
-exports.http = {
-  text: 'http',
-  aliases: 'req',
-  flags: [{
-    name: 'window',
-    aliases: ['w'],
-    type: 'boolean',
-    info: 'Opens response in new browser window'
-  }],
-  validation: function validation(ctx) {
-    var method = ctx.params[0];
-    if (!method) return {
-      result: false,
-      error: new Error('No method specified!')
-    };else if (allowedMethods.indexOf(method) === -1) return {
-      result: false,
-      error: new Error("Invalid method: ".concat(method, ". Only ").concat(allowedMethods.join(','), " are allowed"))
-    };
-    var url = ctx.params[1];
-    if (!url) return {
-      result: false,
-      error: new Error('No url specified!')
-    };else if (!isCorrectUrl(url)) return {
-      result: false,
-      error: new Error("Incorrect url")
-    };
-    if (ctx.params[2]) return {
-      result: false,
-      error: new Error("Unknown argument ".concat(ctx.params[2]))
-    };
-    return {
-      result: true,
-      processed: {
-        url: url,
-        method: method
-      }
-    };
-  },
-  action: function action(ctx) {
-    var init = {
-      method: ctx.processed.method,
-      mode: 'cors'
-    };
 
-    if (ctx.flags['window']) {
-      window.open(ctx.processed.url, '_blank');
+function infoCmd(name, aliases) {
+  return {
+    text: name,
+    info: 'Shows info about all avaliable commands of a particual command if specified',
+    aliases: aliases,
+    validation: function validation(ctx) {
+      if (ctx.params.length === 0) return {
+        result: true,
+        processed: ctx.caller.getAllCommandsInfo()
+      };
+      if (ctx.params.length === 1) return {
+        result: true,
+        processed: ctx.caller.getInfo(ctx.params[0])
+      };
+      return false;
+    },
+    action: function action(ctx) {
+      if (ctx.processed === undefined) {
+        ctx.caller.out("Command ".concat(ctx.params[0], " not found"));
+      } else if (ctx.processed instanceof Array) {
+        ctx.processed.forEach(function (info) {
+          ctx.caller.out("".concat(info.name, " : ").concat(info.info));
+        });
+      } else {
+        ctx.caller.out("".concat(ctx.processed.name, " : ").concat(ctx.processed.info));
+      }
+
       return Promise.resolve();
     }
+  };
+}
 
-    return fetch(ctx.processed.url, init).then(function (response) {
-      var contentType = response.headers.get('Content-Type');
+exports.infoCmd = infoCmd;
 
-      if (!contentType) {
-        ctx.caller.view.write('"Content-Type" header not found');
-        return Promise.resolve('');
-      } else if (!isAllowedContentType(contentType)) {
-        ctx.caller.view.write("Content type \"".concat(contentType, "\" is not supported"));
-        return Promise.resolve('');
-      } else {
-        ctx.caller.view.write("Content-Type: \"".concat(contentType, "\""));
-        return response.text();
-      }
-    }).then(function (data) {
-      if (typeof data === 'string') ctx.caller.view.write(data);
-    }).catch(function (err) {
-      ctx.caller.view.write(err.message);
-    });
-  }
+function clearCmd(name, aliases) {
+  return {
+    text: name,
+    aliases: aliases,
+    info: 'Clears terminal screen',
+    validation: function validation(ctx) {
+      return ctx.params.length === 0;
+    },
+    action: function action(ctx) {
+      ctx.caller.emit('clear', {});
+      return Promise.resolve();
+    }
+  };
+}
+
+exports.clearCmd = clearCmd;
+
+function exitCmd(name, aliases) {
+  return {
+    text: name,
+    aliases: aliases,
+    info: 'Shuts down terminal',
+    validation: function validation(ctx) {
+      return ctx.params.length === 0;
+    },
+    action: function action(ctx) {
+      ctx.caller.stop();
+      return Promise.resolve();
+    }
+  };
+}
+
+exports.exitCmd = exitCmd;
+},{}],"ts/apps/chat/commands.ts":[function(require,module,exports) {
+"use strict";
+
+var __importDefault = this && this.__importDefault || function (mod) {
+  return mod && mod.__esModule ? mod : {
+    "default": mod
+  };
 };
 
-function isCorrectUrl(url) {
-  var pattern = new RegExp('^(https?:\\/\\/)?' + // protocol
-  '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.?)+[a-z]{2,}|' + // domain name
-  '((\\d{1,3}\\.){3}\\d{1,3}))' + // OR ip (v4) address
-  '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // port and path
-  '(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
-  '(\\#[-a-z\\d_]*)?$', 'i'); // fragment locator
-
-  return pattern.test(url);
-}
-
-function isAllowedContentType(contentType) {
-  for (var _i = 0, _allowedContentTypes = allowedContentTypes; _i < _allowedContentTypes.length; _i++) {
-    var pattern = _allowedContentTypes[_i];
-    if (pattern.test(contentType)) return true;
-  }
-
-  return false;
-}
-},{}],"ts/terminal/Commands.ts":[function(require,module,exports) {
-"use strict";
-
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var http_1 = require("./http");
+var defaultCommands_1 = require("../../lib/base/defaultCommands");
+
+var CommandTrigger_1 = __importDefault(require("../../lib/base/CommandTrigger"));
 
 exports.commands = [{
-  text: 'clear',
-  action: function action(ctx) {
-    ctx.caller.view.clear();
-    return Promise.resolve();
-  },
+  text: '@status',
+  aliases: '@st',
+  info: 'Shows connection status',
   validation: function validation(ctx) {
     return ctx.params.length === 0;
   },
-  aliases: 'cls',
-  info: 'Clears terminal screen'
-}, {
-  text: 'exit',
   action: function action(ctx) {
-    ctx.caller.stop();
-    return Promise.resolve();
-  },
-  validation: function validation(ctx) {
-    return ctx.params.length === 0;
-  },
-  info: 'Shuts down terminal'
-}, {
-  text: 'info',
-  validation: function validation(ctx) {
-    if (ctx.params.length === 0) return {
-      result: true,
-      processed: ctx.caller.getAllCommandsInfo()
-    };
-    if (ctx.params.length === 1) return {
-      result: true,
-      processed: ctx.caller.getInfo(ctx.params[0])
-    };
-    return false;
-  },
-  action: function action(ctx) {
-    if (ctx.processed === undefined) {
-      ctx.caller.view.write("Command ".concat(ctx.params[0], " not found"));
-    } else if (ctx.processed instanceof Array) {
-      ctx.processed.forEach(function (info) {
-        ctx.caller.view.write("".concat(info.name, " : ").concat(info.info));
-      });
-    } else {
-      ctx.caller.view.write("".concat(ctx.processed.name, " : ").concat(ctx.processed.info));
-    }
-
+    var socket = ctx.caller.socket;
+    var status = socket ? 'CONNECTED' : 'DISCONNECTED';
+    ctx.caller.out("Your are currently <b>".concat(status, "</b>"));
     return Promise.resolve();
   }
-}, http_1.http];
-},{"./http":"ts/terminal/http.ts"}],"main.ts":[function(require,module,exports) {
-"use strict";
+}, {
+  text: '@connect',
+  aliases: '@con',
+  info: 'Connects to default server',
+  validation: function validation(ctx) {
+    return ctx.params.length === 0;
+  },
+  action: function action(ctx) {
+    var socket = ctx.caller.socket;
+
+    if (socket) {
+      ctx.caller.out('Your are already connected');
+      return Promise.resolve();
+    } else {
+      var client = ctx.caller;
+      var ws = new WebSocket(client.url);
+      ctx.caller.out('Connecting...');
+      return new Promise(function (resolve) {
+        ws.onopen = function () {
+          client.connect(ws);
+          ctx.caller.executeCommand(CommandTrigger_1.default.getFrom('@clear'));
+          ctx.caller.out('Connection successful!');
+          resolve();
+        };
+
+        ws.onclose = function () {
+          ctx.caller.out('Disconnected.');
+        };
+
+        ws.onmessage = function (event) {
+          ctx.caller.out(event.data);
+        };
+      });
+    }
+  }
+}, {
+  text: '@disconnect',
+  aliases: '@dis',
+  info: 'Disconnects from current server',
+  validation: function validation(ctx) {
+    return ctx.params.length === 0;
+  },
+  action: function action(ctx) {
+    var socket = ctx.caller.socket;
+    if (!socket) ctx.caller.out('Your are not connected to any server');else {
+      socket.close(0, 'disconnection command');
+    }
+    return Promise.resolve();
+  }
+}, {
+  text: '@message',
+  aliases: '@msg',
+  info: 'Sends message',
+  validation: function validation(ctx) {
+    return ctx.params.length === 1;
+  },
+  action: function action(ctx) {
+    debugger;
+    var socket = ctx.caller.socket;
+
+    if (!socket) {
+      return Promise.resolve(new Error('You are not connected to any server'));
+    } else {
+      socket.send(ctx.params[0]);
+      return Promise.resolve();
+    }
+  }
+}, defaultCommands_1.infoCmd('@info', ['@help', '@?']), defaultCommands_1.clearCmd('@clear', ['@cls']), defaultCommands_1.exitCmd('@exit', ['@quit', '@q'])];
+},{"../../lib/base/defaultCommands":"ts/lib/base/defaultCommands.ts","../../lib/base/CommandTrigger":"ts/lib/base/CommandTrigger.ts"}],"main.ts":[function(require,module,exports) {
+"use strict"; // import './main.scss';
+// import CommandShell from './ts/apps/shell/CommandShell';
+// import Terminal from './ts/views/Terminal';
+// import { commands } from './ts/apps/shell/commands';
+
+var __importDefault = this && this.__importDefault || function (mod) {
+  return mod && mod.__esModule ? mod : {
+    "default": mod
+  };
+};
 
 Object.defineProperty(exports, "__esModule", {
   value: true
-});
+}); // const view = new Terminal('.screen');
+// const shell = new CommandShell(commands);
+// view.attachTo(shell);
+// shell.run();
 
 require("./main.scss");
 
-var Terminal_1 = require("./ts/terminal/Terminal");
+var ChatClient_1 = __importDefault(require("./ts/apps/chat/ChatClient"));
 
-var TerminalView_1 = require("./ts/views/TerminalView");
+var Terminal_1 = __importDefault(require("./ts/views/Terminal"));
 
-var Commands_1 = require("./ts/terminal/Commands");
+var commands_1 = require("./ts/apps/chat/commands");
 
-var terminal = new Terminal_1.Terminal(new TerminalView_1.TerminalView('.screen'), Commands_1.commands);
-terminal.run();
-},{"./main.scss":"main.scss","./ts/terminal/Terminal":"ts/terminal/Terminal.ts","./ts/views/TerminalView":"ts/views/TerminalView.ts","./ts/terminal/Commands":"ts/terminal/Commands.ts"}],"../../../../../Users/Sergey/AppData/Roaming/npm/node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+var view = new Terminal_1.default('.screen');
+var chat = new ChatClient_1.default(commands_1.commands, 'ws://localhost:1200');
+view.attachTo(chat);
+chat.run();
+},{"./main.scss":"main.scss","./ts/apps/chat/ChatClient":"ts/apps/chat/ChatClient.ts","./ts/views/Terminal":"ts/views/Terminal.ts","./ts/apps/chat/commands":"ts/apps/chat/commands.ts"}],"../../../../../Users/Sergey/AppData/Roaming/npm/node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -1327,7 +1463,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "54924" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "49600" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

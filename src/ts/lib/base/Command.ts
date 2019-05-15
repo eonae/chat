@@ -1,35 +1,7 @@
-import { ITerminal } from './Terminal';
+import BaseIOEntity from './BaseIOEntity';
+import { Flag, Action, Validation, CommandDefinition, FlagsHash } from './types';
 
-type Context = {
-  params: string[],
-  flags: FlagsHash;
-  processed ?: any;
-  caller: ITerminal;
-};
-
-type ValidationResult = { result: boolean, error?: Error, processed ?: any } | boolean;
-
-type Action = (ctx: Context) => Promise<Error | void>;
-type Validation = (ctx: Context) => ValidationResult;
-
-// Функция валидации должна создавать объект c полем result: boolean; 
-
-type CommandDefinition  = {
-  text: string,
-  action: Action,
-  validation: Validation,
-  aliases ?: string[] | string,
-  flags ?: Array<string | Flag>,
-  info ?: string;
-}
-
-type Flag = { name: string, info: string, aliases: string[], type: 'boolean' | 'string' };
-
-interface FlagsHash {
-  [flagName: string] : string | boolean
-}
-
-class Command {
+export default class Command {
 
   public readonly text: string;
   public readonly info: string;
@@ -38,13 +10,13 @@ class Command {
   private readonly _flags: Flag[] = [];
   private readonly _action: Action;
   private readonly _validation: Validation;
-  private _terminal: ITerminal;
+  private _caller: BaseIOEntity;
 
-  constructor(def: CommandDefinition, caller: ITerminal) {
+  constructor(def: CommandDefinition, caller: BaseIOEntity) {
     this.text = def.text;
     this._action = def.action;
     this._validation = def.validation;
-    this._terminal = caller;
+    this._caller = caller;
 
     this.info = (def.info) ? def.info : 'No info for this command';
     
@@ -77,7 +49,7 @@ class Command {
     const ctx = {
       params,
       flags: resolvedFlags,
-      caller: this._terminal,
+      caller: this._caller,
       processed: undefined
     }
     const val = this._validation(ctx);
@@ -121,11 +93,6 @@ class Command {
       return hash;
   }
 
-  
-  public bindToTerminal(terminal: ITerminal) {
-    if (!this._terminal) this._terminal = terminal;
-  }
-
   public get flags() : Flag[] {
     return this._flags.slice(0);
   }
@@ -133,5 +100,3 @@ class Command {
     return this._aliases.slice(0);
   }
 }
-
-export { CommandDefinition, Flag, Command };
