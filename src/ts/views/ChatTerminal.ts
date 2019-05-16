@@ -15,6 +15,7 @@ export default class ChatTerminal {
 
   private screen: Element;
   private messageScreen: Element;
+  private messages: Element;
   private chatInput: ChatInput;
   private scrollBar: SimpleBar;
   private InputSaver = new InputSaver();
@@ -38,7 +39,7 @@ export default class ChatTerminal {
     this.screen.appendChild(this.chatInput.element);
 
     this.scrollBar = new SimpleBar(this.messageScreen as HTMLElement);
-
+    this.messages = this.scrollBar.getContentElement();
 
     this.screen.addEventListener('click', this.handleClick.bind(this));
     window.addEventListener('keydown', this.handleKeys.bind(this));
@@ -86,17 +87,13 @@ export default class ChatTerminal {
   }
   
   private write(html: string) : void {
-
     const line = new Line();
     line.setContent(html);
-
-    debugger;
-    const elem = this.scrollBar.getContentElement();
-    elem.appendChild(line.element);
+    this.messages.appendChild(line.element);
   }
 
   private clear() : void {
-    removeAllChildren(this.messageScreen);
+    removeAllChildren(this.messages);
   }
 
   private handleKeys(event : KeyboardEvent) : void {

@@ -2,7 +2,7 @@ import Line from './Line';
 
 export default class ChatInput extends Line {
 
-  private _input: HTMLInputElement;
+  private readonly _input: HTMLInputElement;
   private _invitation : HTMLDivElement;
   public setInvitation(invitation: string): void {
     this._invitation.textContent = invitation;
@@ -42,7 +42,7 @@ export default class ChatInput extends Line {
     enum Keys { ENTER = 13 };
 
     if (event.keyCode === Keys.ENTER && this._input === document.activeElement) {
-      this.commit();
+      if (this._input.value) this.commit();
     }
   }
 

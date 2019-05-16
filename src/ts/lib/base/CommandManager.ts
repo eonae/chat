@@ -1,7 +1,7 @@
 import Command from './Command';
 import CommandTrigger from './CommandTrigger';
 import BaseIOEntity from './BaseIOEntity';
-import { CommandInfo, CommandDefinition } from './types';
+import { CommandInfo, CommandDefinition, CommandNotFoundError } from './types';
 
 export default class CommandManager {
 
@@ -40,7 +40,7 @@ export default class CommandManager {
     const cmd = this._map.get(trigger.command);
     return (cmd !== undefined)
       ? cmd.exec(trigger.arguments, trigger.flags)
-      : Promise.resolve(new Error('Command not found'));
+      : Promise.reject(new CommandNotFoundError);
   }
 
   private checkDef(def: CommandDefinition) : void {

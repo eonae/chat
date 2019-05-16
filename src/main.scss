@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css?family=Kanit');
+@import url('https://fonts.googleapis.com/css?family=Baloo+Bhai" rel="stylesheet');
 @import './sass/mixins';
 @import './sass/line';
 @import './sass/chat';
@@ -13,7 +14,9 @@ body {
   @include flex(center, center);
 
   * {
-    font-family: 'Kanit', sans-serif;
+    // font-family: 'Kanit', sans-serif;
+    font-weight: 500;
+    font-family: 'Baloo Bhai', cursive;
     box-sizing: border-box;
   }
 }

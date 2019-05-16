@@ -1,66 +1,109 @@
 import BaseIOEntity from "../../lib/base/BaseIOEntity";
-import { CommandDefinition } from "../../lib/base/types";
+import { CommandDefinition, IEventEmitter, CommandNotFoundError } from "../../lib/base/types";
 import CommandTrigger from "../../lib/base/CommandTrigger";
-import { isError } from "../../lib/util";
 
+
+export interface IChatService extends IEventEmitter {
+  isConnected: boolean;
+  tryConnect: (url: string, username: string) => Promise<void>;
+  disconnect: () => void;
+  send: (message: string) => boolean;
+}
+
+const Messages = {
+  CONNECTED: 'Connected to server',
+  CONNECTING: 'Connecting...',
+  DISCONNECTED: 'Disconnected from server',
+  FAILED: 'Connection failed!',
+  NOT_CONNECTED: 'You are not connected to any server',
+  ALREADY_CONNECTED: 'You are already connected'
+}
+
+const Events = {
+  DISCONNECT: 'disconnect',
+
+}
 
 export default class ChatClient extends BaseIOEntity { // По идее BaseIOEnity должен быть интерфейсом, конечно
   
-  private _socket: WebSocket | undefined;
+  private _service: IChatService;
   public readonly url: string;
+  public readonly defaultProtocol: string = 'ws';
 
-  public get socket(): WebSocket | undefined {
-    return this._socket;
-  }
-  public connect(socket: WebSocket): void {
-    this._socket = socket;
-  }
-  public disconnect(): void {
-    this._socket = undefined;
-  }
-
-  constructor(commands: CommandDefinition[], url: string) {
+  constructor(commands: CommandDefinition[], url: string, service: IChatService) {
     super(commands);
+    this._service = service;
     this.url = url;
     this.in = this.in.bind(this);
-    this.reportErrors = this.reportErrors.bind(this);
+
+    this._service.on(Events.DISCONNECT, () => {
+      this.out(Messages.DISCONNECTED);
+      this.dropInvitation();
+    })
   }
 
-  private reportErrors(output: any) : Promise<any> {
-    if (isError(output)) {
-      this.emit('write', output.message);
+  public tryConnect(url: string, username: string) : Promise<void> {
+    if (this._service.isConnected) {
+      this.out(Messages.ALREADY_CONNECTED);
+      return Promise.resolve();
     }
-    return Promise.resolve(output);
+    
+    this.out(Messages.CONNECTING);
+    // this.emit('block?');
+    return this._service
+      .tryConnect(url, username)
+      .then(() => {
+        this.emit('clear', {}); // this.clear() ??
+        this.out(Messages.CONNECTED);
+        this.setInvitation('$');
+        return;
+      })
+      .catch(err => {
+        console.log(err);
+        this.out(Messages.FAILED);
+      })
   }
 
-  private _messageTrigger(message: string) : CommandTrigger {
-    return {
-      command: '@message',
-      flags: [],
-      arguments: [ message ]
+  public checkStatus() : void {
+    const status = (this._service.isConnected)
+      ? 'CONNECTED' : 'DISCONNECTED';
+    this.out(`Your are currently <b>${status}</b>`);
+  }
+
+  public disconnect(): Promise<void> {
+    if (this._service.isConnected) {
+      this._service.disconnect();
+      return Promise.resolve();
+      // Сообщение в out пойдёт через событие от сервиса.
+    } else {
+      return Promise.reject(Messages.NOT_CONNECTED);
+    }
+  }
+
+  public sendMessage(message: string) : Promise<void> {
+    if (this._service.send(message)) {
+      this.out(message);
+      return Promise.resolve();
+    } else {
+      return Promise.reject(new Error(Messages.NOT_CONNECTED))
     }
   }
 
   public in(input: string): void {
     const trigger = CommandTrigger.getFrom(input);
-    let error: Error | void; // Не знаю, как сделать по-другому. Надо разбираться
     this.commandManager
       .tryExecute(trigger)
-      .then(output => {
-        if (isError(output)) {
-          error = output;
-          return this.commandManager
-            .tryExecute(this._messageTrigger(input))
-            .then(output => {
-              const res = (isError(output)) ? error : undefined; // Это важно! Причина по которой не получилось отправить сообщение
-              // Может быть только одна - соединение закрыто, а значит нужно отобразить именно ошибку КОМАНДЫ!
-              return Promise.resolve(res);
-            });
-        } else {
-          return Promise.resolve(error);
-        }
+      .catch(commandError => {
+        return (commandError instanceof CommandNotFoundError)
+          ? this.sendMessage(input)
+            .catch((/* Какая ошибка неважно */) => {
+              return Promise.reject(commandError);
+            })
+          : Promise.reject(commandError);
       })
-      .then(this.reportErrors)
+      .catch(error => {
+        this.out(error.message);
+      })
       .then(() => {
         if (!this._stopToken) {
           this.run();

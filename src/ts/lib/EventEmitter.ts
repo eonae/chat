@@ -1,10 +1,10 @@
-type eventHandler = (args: any) => void;
+import { IEventEmitter, EventHandler } from './base/types';
 
-export default abstract class EventEmitter {
+export default abstract class EventEmitter implements IEventEmitter {
 
-  private _map = new Map<string, Array<eventHandler> >();
+  private _map = new Map<string, Array<EventHandler> >();
 
-  public on(eventName: string, handler: eventHandler) : void {
+  public on(eventName: string, handler: EventHandler) : void {
 
     const arrayOfHandlers = this._map.get(eventName);
 
@@ -16,7 +16,7 @@ export default abstract class EventEmitter {
     }
   }
 
-  public off(eventName: string, handler: eventHandler) : void {
+  public off(eventName: string, handler: EventHandler) : void {
 
     const arrayOfHandlers = this._map.get(eventName);
     if (!arrayOfHandlers) return;

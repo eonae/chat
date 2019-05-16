@@ -45,3 +45,18 @@ export type CommandInfo = {
 }
 
 export type BaseIOCallback = (event: any) => void;
+
+export type EventHandler = (args: any) => void;
+
+export interface IEventEmitter {
+  on: (eventName: string, handler: EventHandler) => void;
+  off: (eventName: string, handler: EventHandler) => void;
+  emit: (eventName: string, args: any) => void;
+}
+
+export class CommandNotFoundError extends Error {
+  constructor() {
+    super('Command not found');
+  }
+}
+

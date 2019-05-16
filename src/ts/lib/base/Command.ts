@@ -43,7 +43,7 @@ export default class Command {
     try {
       resolvedFlags = this._resolveFlags(flags);
     } catch (err) {
-      return Promise.resolve(err);
+      return Promise.reject(err);
     }
     // Validating parameters
     const ctx = {
@@ -56,7 +56,7 @@ export default class Command {
     const result = (typeof val === 'boolean') ? val : val.result;
     if (!result) {
       const error = (typeof val === 'boolean') ? new Error('Invalid parameters!') : val.error;
-      return Promise.resolve(error);
+      return Promise.reject(error);
     }
     
     if (typeof val !== 'boolean' && val.processed) {
@@ -68,7 +68,6 @@ export default class Command {
   private _resolveFlags(flags: string[]) : FlagsHash {
       const hash: FlagsHash = {};
       flags.forEach(rawFlag => {
-        debugger;
 
         const arr = rawFlag.split('=');
         if (arr.length > 2) throw new Error('Invalid flag!');

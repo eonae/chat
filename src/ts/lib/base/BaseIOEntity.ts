@@ -58,7 +58,7 @@ export default abstract class BaseIOEntity extends EventEmitter {
     this.on('clear', callback);
   }
 
-  public out(message: string): void {
+  protected out(message: string): void {
     this.emit('write', message);
   }
 

@@ -1,7 +1,7 @@
 import { CommandDefinition } from '../../lib/base/types';
 import ChatClient from '../chat/ChatClient';
 import { infoCmd, clearCmd, exitCmd } from '../../lib/base/defaultCommands';
-import CommandTrigger from '../../lib/base/CommandTrigger';
+import { isCorrectUrl } from '../../lib/util';
 
 export const commands: CommandDefinition[] = [
   {
@@ -12,9 +12,8 @@ export const commands: CommandDefinition[] = [
       return ctx.params.length === 0;
     },
     action: (ctx) => {
-      const socket = (ctx.caller as ChatClient).socket;
-      const status = (socket) ? 'CONNECTED' : 'DISCONNECTED';
-      ctx.caller.out(`Your are currently <b>${status}</b>`)
+      const client = ctx.caller as ChatClient;
+      client.checkStatus(); //sync
       return Promise.resolve();
     },
   },
@@ -22,47 +21,35 @@ export const commands: CommandDefinition[] = [
   {
     text: '@connect',
     aliases: '@con',
+    flags: [
+      { name: 'user', aliases: ['u'], type: 'string', info: 'Specifies username' }
+    ],
     info: 'Connects to default server',
     validation: (ctx) => {
-      return ctx.params.length === 0;
+      if (ctx.params.length === 0) return true;
+      else if (ctx.params.length === 1) {
+        debugger;
+        const url = ctx.params[0];
+        let protocol = isCorrectUrl(url, ['ws', 'wss']);
+        if (protocol) {
+          if (protocol === 'any') protocol = (ctx.caller as ChatClient).defaultProtocol;
+          return { result: true, processed: { url: protocol +'://' + url } }
+        } else {
+          return false;
+        }
+      } else return false;
     },
     action: (ctx) => {
-      const socket = (ctx.caller as ChatClient).socket;
-      if (socket) {
-        ctx.caller.out('Your are already connected');
-        return Promise.resolve();
-      }
-
-      // Сделать запрос имеи пользователя:
 
       const client = ctx.caller as ChatClient;
+      const url = (ctx.processed) ? ctx.processed : client.url;
 
-      return client.ask('username')
-        .then(username => {
-          console.log(username);
-          const ws = new WebSocket(client.url);
-          ctx.caller.out('Connecting...')
-          return new Promise(resolve => {
-            ws.onopen = () => {
-              client.connect(ws);
-              ctx.caller.executeCommand(CommandTrigger.getFrom('@clear'));
-              ctx.caller.out('Connection successful!');
-              ctx.caller.setInvitation('$');
-              resolve();
-            }
-            ws.onclose = () => {
-              ctx.caller.out('Disconnected.');
-              ctx.caller.dropInvitation();
-            }
-            ws.onmessage = event => {
-              ctx.caller.out(event.data);
-            }
-          });
-        })
-
-      
-      
-    },
+      return (ctx.flags['user'])
+        ? client.tryConnect(url, ctx.flags['user'] as string)
+        : client.ask('username:').then(username => {
+          return client.tryConnect(url, username);
+        });
+    }
   },
   
   {
@@ -73,13 +60,10 @@ export const commands: CommandDefinition[] = [
       return ctx.params.length === 0;
     },
     action: (ctx) => {
-      const socket = (ctx.caller as ChatClient).socket;
-      if (!socket) ctx.caller.out('Your are not connected to any server');
-      else {
-        socket.close(0, 'disconnection command');
-      }
+      const client = ctx.caller as ChatClient;
+      client.disconnect(); //sync
       return Promise.resolve();
-    },
+    }
   },
 
   {
@@ -90,16 +74,9 @@ export const commands: CommandDefinition[] = [
       return ctx.params.length === 1;
     },
     action: (ctx) => {
-      const socket = (ctx.caller as ChatClient).socket;
-
-      if (!socket) {
-        return Promise.resolve(new Error('You are not connected to any server'));
+      const client = ctx.caller as ChatClient;
+      return client.sendMessage(ctx.params[0]);
       }
-      else {
-        socket.send(ctx.params[0]);
-        return Promise.resolve();
-      }
-    },
   },
 
   infoCmd('@info', ['@help','@?']),
